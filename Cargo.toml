@@ -10,6 +10,9 @@ publish = false
 [lib]
 doctest = false
 
+[profile.release]
+lto = true
+
 [profile.dhat]
 inherits = "release"
 debug = 1
@@ -24,8 +27,8 @@ unsafe_optimizations = []
 
 # Template dependencies
 chrono = { version = "0.4.38", optional = true }
+criterion = { version = "0.8.0", default-features = false }
 dhat = { version = "0.3.3", optional = true }
-lexical = "7.0.5"
 pico-args = "0.5.0"
 tinyjson = "2.5.1"
 

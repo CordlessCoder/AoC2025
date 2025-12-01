@@ -60,9 +60,11 @@ macro_rules! solution {
         static ALLOC: dhat::Alloc = dhat::Alloc;
 
         fn main() {
+            let mut criterion = ::criterion::Criterion::default().with_output_color(true);
             use $crate::template::runner::*;
             let input = $crate::template::read_file("inputs", DAY);
-            $( run_part($func, &input, DAY, $part); )*
+
+            $( run_part($func, &input, DAY, $part, &mut criterion); )*
         }
     };
 }

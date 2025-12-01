@@ -1,35 +1,25 @@
 /// Encapsulates code that interacts with solution functions.
 use std::fmt::Display;
 use std::hint::black_box;
-use std::io::{Write, stdout};
 use std::process::Output;
 use std::time::{Duration, Instant};
-use std::{cmp, env, process};
+use std::{env, process};
+
+use criterion::{BenchmarkId, Criterion};
 
 use crate::template::ANSI_BOLD;
-use crate::template::{ANSI_ITALIC, ANSI_RESET, Day, aoc_cli};
+use crate::template::{ANSI_RESET, Day, aoc_cli};
 
-pub fn run_part<I: Copy, T: Display>(func: impl Fn(I) -> Option<T>, input: I, day: Day, part: u8) {
-    let part_str = format!("Part {part}");
-
-    let (result, duration, samples) =
-        run_timed(func, input, |result| print_result(result, &part_str, ""));
-
-    print_result(&result, &part_str, &format_duration(&duration, samples));
-
-    if let Some(result) = result {
-        submit_result(result, day, part);
-    }
-}
-
-/// Run a solution part. The behavior differs depending on whether we are running a release or debug build:
-///  1. in debug, the function is executed once.
-///  2. in release, the function is benched (approx. 1 second of execution time or 10 samples, whatever take longer.)
-fn run_timed<I: Copy, T>(
-    func: impl Fn(I) -> T,
+pub fn run_part<I: Copy, T: Display>(
+    func: impl Fn(I) -> Option<T>,
     input: I,
-    hook: impl Fn(&T),
-) -> (T, Duration, u128) {
+    day: Day,
+    part: u8,
+    bench: &mut Criterion,
+) {
+    let part_str = format!("Part {part}");
+    let hook = |result| print_result(result, &part_str, "");
+
     let timer = Instant::now();
     let result = {
         #[cfg(feature = "dhat-heap")]
@@ -39,54 +29,25 @@ fn run_timed<I: Copy, T>(
     };
     let base_time = timer.elapsed();
 
+    if base_time > Duration::from_secs(1) {
+        print_result(&result, &part_str, &format_duration(&base_time, 1));
+        return;
+    }
+
+    bench.bench_with_input(
+        BenchmarkId::new(format!("Day {day}"), part),
+        &input,
+        |b, &input| b.iter(|| black_box(func(black_box(input)))),
+    );
+
     hook(&result);
 
-    let run = if std::env::args().any(|x| x == "--time") {
-        bench(func, input, &base_time)
-    } else {
-        (base_time, 1)
-    };
-
-    (result, run.0, run.1)
+    if let Some(result) = result {
+        submit_result(result, day, part);
+    }
 }
 
-fn bench<I: Copy, T>(func: impl Fn(I) -> T, input: I, base_time: &Duration) -> (Duration, u128) {
-    let mut stdout = stdout();
-
-    print!(" > {ANSI_ITALIC}benching{ANSI_RESET}");
-    let _ = stdout.flush();
-
-    let bench_iterations =
-        (Duration::from_secs(1).as_nanos() / cmp::max(base_time.as_nanos(), 10)).clamp(10, 100000);
-
-    let mut timers: Vec<Duration> = vec![];
-
-    let mut per_sample = bench_iterations / 1000;
-    if per_sample == 0 {
-        per_sample = bench_iterations / 100;
-    }
-    if per_sample == 0 {
-        per_sample = bench_iterations / 10;
-    }
-    for _ in 0..(bench_iterations / per_sample) {
-        let timer = Instant::now();
-        for _ in 0..per_sample {
-            black_box(func(black_box(input)));
-        }
-        let runtime = timer.elapsed();
-        timers.push(runtime);
-    }
-
-    let avg = timers
-        .iter()
-        .map(std::time::Duration::as_nanos)
-        .sum::<u128>()
-        / (bench_iterations / per_sample * per_sample) as u128;
-    (Duration::from_nanos(avg as u64), bench_iterations)
-}
-
-
-fn format_duration(duration: &Duration, samples: u128) -> String {
+fn format_duration(duration: &Duration, samples: u32) -> String {
     if samples == 1 {
         format!(" ({duration:.1?})")
     } else {
@@ -95,36 +56,22 @@ fn format_duration(duration: &Duration, samples: u128) -> String {
 }
 
 fn print_result<T: Display>(result: &Option<T>, part: &str, duration_str: &str) {
-    let is_intermediate_result = duration_str.is_empty();
-
     match result {
         Some(result) => {
             if result.to_string().contains('\n') {
                 let str = format!("{part}: ▼ {duration_str}");
-                if is_intermediate_result {
-                    print!("{str}");
-                } else {
-                    print!("\r");
-                    println!("{str}");
-                    println!("{result}");
-                }
+                print!("\r");
+                println!("{str}");
+                println!("{result}");
             } else {
                 let str = format!("{part}: {ANSI_BOLD}{result}{ANSI_RESET}{duration_str}");
-                if is_intermediate_result {
-                    print!("{str}");
-                } else {
-                    print!("\r");
-                    println!("{str}");
-                }
+                print!("\r");
+                println!("{str}");
             }
         }
         None => {
-            if is_intermediate_result {
-                print!("{part}: ✖");
-            } else {
-                print!("\r");
-                println!("{part}: ✖             ");
-            }
+            print!("\r");
+            println!("{part}: ✖             ");
         }
     }
 }
