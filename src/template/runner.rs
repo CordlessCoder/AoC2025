@@ -57,30 +57,34 @@ fn bench<I: Copy, T>(func: impl Fn(I) -> T, input: I, base_time: &Duration) -> (
     let _ = stdout.flush();
 
     let bench_iterations =
-        (Duration::from_secs(1).as_nanos() / cmp::max(base_time.as_nanos(), 10)).clamp(10, 10000);
+        (Duration::from_secs(1).as_nanos() / cmp::max(base_time.as_nanos(), 10)).clamp(10, 100000);
 
     let mut timers: Vec<Duration> = vec![];
 
-    for _ in 0..bench_iterations {
+    let mut per_sample = bench_iterations / 1000;
+    if per_sample == 0 {
+        per_sample = bench_iterations / 100;
+    }
+    if per_sample == 0 {
+        per_sample = bench_iterations / 10;
+    }
+    for _ in 0..(bench_iterations / per_sample) {
         let timer = Instant::now();
-        black_box(func(black_box(input)));
-        timers.push(timer.elapsed());
+        for _ in 0..per_sample {
+            black_box(func(black_box(input)));
+        }
+        let runtime = timer.elapsed();
+        timers.push(runtime);
     }
 
-    (
-        #[allow(clippy::cast_possible_truncation)]
-        Duration::from_nanos(average_duration(&timers) as u64),
-        bench_iterations,
-    )
-}
-
-fn average_duration(numbers: &[Duration]) -> u128 {
-    numbers
+    let avg = timers
         .iter()
         .map(std::time::Duration::as_nanos)
         .sum::<u128>()
-        / numbers.len() as u128
+        / (bench_iterations / per_sample * per_sample) as u128;
+    (Duration::from_nanos(avg as u64), bench_iterations)
 }
+
 
 fn format_duration(duration: &Duration, samples: u128) -> String {
     if samples == 1 {
