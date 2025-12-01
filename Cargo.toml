@@ -18,12 +18,14 @@ debug = 1
 dhat-heap = ["dhat"]
 today = ["chrono"]
 test_lib = []
+unsafe_optimizations = []
 
 [dependencies]
 
 # Template dependencies
 chrono = { version = "0.4.38", optional = true }
 dhat = { version = "0.3.3", optional = true }
+lexical = "7.0.5"
 pico-args = "0.5.0"
 tinyjson = "2.5.1"
 
