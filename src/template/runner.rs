@@ -18,8 +18,6 @@ pub fn run_part<I: Copy, T: Display>(
     bench: &mut Criterion,
 ) {
     let part_str = format!("Part {part}");
-    let hook = |result| print_result(result, &part_str, "");
-
     let timer = Instant::now();
     let result = {
         #[cfg(feature = "dhat-heap")]
@@ -30,20 +28,32 @@ pub fn run_part<I: Copy, T: Display>(
     let base_time = timer.elapsed();
     let timed = std::env::args().any(|x| x == "--time");
 
-
     if !timed || base_time > Duration::from_secs(1) {
         print_result(&result, &part_str, &format_duration(&base_time, 1));
         return;
     }
 
-
+    let mut total_runtime = Duration::ZERO;
+    let mut samples = 0;
     bench.bench_with_input(
         BenchmarkId::new(format!("Day {day}"), part),
         &input,
-        |b, &input| b.iter(|| black_box(func(black_box(input)))),
+        |b, &input| {
+            b.iter_custom(|iters| {
+                let start = Instant::now();
+                for _ in 0..iters {
+                    black_box(func(black_box(input)));
+                }
+                let took = start.elapsed();
+                total_runtime += took;
+                samples += iters as u32;
+                took
+            })
+        },
     );
 
-    hook(&result);
+
+    print_result(&result, &part_str, &format_duration(&(total_runtime / samples), samples ));
 
     if let Some(result) = result {
         submit_result(result, day, part);

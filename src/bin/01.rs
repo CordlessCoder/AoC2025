@@ -1,4 +1,3 @@
-#![feature(fn_align)]
 use std::cmp::Ordering;
 
 advent_of_code::solution!(1);
@@ -55,7 +54,8 @@ pub fn part_one(input: &str) -> Option<u32> {
     let mut position = 50;
 
     input.for_each(|offset| {
-        position = (position + offset).wrapping_rem_euclid(100);
+        let raw_value = position + offset;
+        position = raw_value.wrapping_rem_euclid(100);
         if position == 0 {
             count += 1;
         }
@@ -64,23 +64,23 @@ pub fn part_one(input: &str) -> Option<u32> {
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    let mut value = 50;
+    let mut position = 50;
     let mut count = 0;
 
     let input = input_iter(input);
 
-    for change in input {
-        let raw_value = value + change;
-        value = raw_value.wrapping_rem_euclid(100);
+    for offset in input {
+        let raw_value = position + offset;
+        position = raw_value.wrapping_rem_euclid(100);
 
         match raw_value.cmp(&0) {
             Ordering::Less => {
                 count += (raw_value / 100).unsigned_abs();
-                if raw_value != change {
+                if raw_value != offset {
                     count += 1;
                 }
             }
-            Ordering::Equal if raw_value != change => count += 1,
+            Ordering::Equal if raw_value != offset => count += 1,
             Ordering::Greater => count += raw_value.unsigned_abs() / 100,
             _ => (),
         }

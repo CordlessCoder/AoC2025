@@ -21,7 +21,8 @@ pub fn handle(day: Option<Day>, run_all: bool, store: bool) {
         |day| HashSet::from([day]),
     );
 
-    let timings = run_multi(&days_to_run, true, true).unwrap();
+    let is_unsafe =  cfg!(feature = "unsafe_optimizations");
+    let timings = run_multi(&days_to_run, true, true, is_unsafe).unwrap();
 
     if store {
         let merged_timings = stored_timings.merge(&timings);
