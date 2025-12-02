@@ -1,3 +1,6 @@
+#![feature(fn_align)]
+use std::cmp::Ordering;
+
 advent_of_code::solution!(1);
 
 type Int = i32;
@@ -47,31 +50,40 @@ fn input_iter(input: &str) -> impl Iterator<Item = Int> {
 }
 
 pub fn part_one(input: &str) -> Option<u32> {
-    let res = input_iter(input)
-        .scan(50, |pointing_at, offset| {
-            *pointing_at = (*pointing_at + offset) % 100;
-            Some(*pointing_at)
-        })
-        .map(|p| (p == 0) as u32)
-        .sum();
-    Some(res)
+    let input = input_iter(input);
+    let mut count = 0;
+    let mut position = 50;
+
+    input.for_each(|offset| {
+        position = (position + offset).wrapping_rem_euclid(100);
+        if position == 0 {
+            count += 1;
+        }
+    });
+    Some(count)
 }
 
 pub fn part_two(input: &str) -> Option<u32> {
-    let res = input_iter(input)
-        .scan(50, |pointing_at, offset| {
-            let mut full_rotations = (offset / 100).unsigned_abs();
-            let old_pos = *pointing_at;
-            let new_pos = (old_pos + offset).rem_euclid(100);
-            *pointing_at = new_pos;
-            let went_to_zero = new_pos == 0 && old_pos != 0;
-            let went_below_zero = offset.is_negative() && old_pos != 0 && new_pos > old_pos;
-            let went_above_max = offset.is_positive() && new_pos < old_pos;
-            if went_below_zero || went_to_zero || went_above_max {
-                full_rotations += 1;
+    let mut value = 50;
+    let mut count = 0;
+
+    let input = input_iter(input);
+
+    for change in input {
+        let raw_value = value + change;
+        value = raw_value.wrapping_rem_euclid(100);
+
+        match raw_value.cmp(&0) {
+            Ordering::Less => {
+                count += (raw_value / 100).unsigned_abs();
+                if raw_value != change {
+                    count += 1;
+                }
             }
-            Some(full_rotations)
-        })
-        .sum();
-    Some(res)
+            Ordering::Equal if raw_value != change => count += 1,
+            Ordering::Greater => count += raw_value.unsigned_abs() / 100,
+            _ => (),
+        }
+    }
+    Some(count)
 }

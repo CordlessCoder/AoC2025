@@ -28,11 +28,14 @@ pub fn run_part<I: Copy, T: Display>(
         func(input)
     };
     let base_time = timer.elapsed();
+    let timed = std::env::args().any(|x| x == "--time");
 
-    if base_time > Duration::from_secs(1) {
+
+    if !timed || base_time > Duration::from_secs(1) {
         print_result(&result, &part_str, &format_duration(&base_time, 1));
         return;
     }
+
 
     bench.bench_with_input(
         BenchmarkId::new(format!("Day {day}"), part),
