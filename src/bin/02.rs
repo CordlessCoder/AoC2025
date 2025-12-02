@@ -36,9 +36,9 @@ pub fn part_one(input: &str) -> Option<u64> {
             // number of digits by concatenating a number to itself.
             let odd_exponents = (min_exp | 1..=max_exp).step_by(2);
             odd_exponents.map(move |exponent| -> u64 {
-                let factor = 10u64.pow(exponent.div_ceil(2)) + 1;
+                let factor = 10u64.pow(exponent / 2 + 1) + 1;
                 let min_sequence = start.div_ceil(factor).max(10u64.pow(exponent / 2));
-                let max_sequence = (end / factor).min(10u64.pow(exponent.div_ceil(2)) - 1);
+                let max_sequence = (end / factor).min(10u64.pow(exponent / 2 + 1) - 1);
                 (min_sequence..=max_sequence)
                     .map(|seq| seq * factor)
                     .filter(|candidate| (start..=end).contains(candidate))
@@ -68,7 +68,7 @@ pub fn part_two(input: &str) -> Option<u64> {
                         .div_ceil(factor)
                         .max(10u64.pow(exponent / repetitions));
                     let max_sequence =
-                        (end / factor).min(10u64.pow(exponent.div_ceil(repetitions)) - 1);
+                        (end / factor).min(10u64.pow((exponent + 1) / repetitions) - 1);
                     (min_sequence..=max_sequence)
                         .map(move |seq| seq * factor)
                         .filter(move |candidate| (start..=end).contains(candidate))
