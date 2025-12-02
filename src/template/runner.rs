@@ -52,8 +52,11 @@ pub fn run_part<I: Copy, T: Display>(
         },
     );
 
-
-    print_result(&result, &part_str, &format_duration(&(total_runtime / samples), samples ));
+    print_result(
+        &result,
+        &part_str,
+        &format_duration(&(total_runtime / samples), samples),
+    );
 
     if let Some(result) = result {
         submit_result(result, day, part);
