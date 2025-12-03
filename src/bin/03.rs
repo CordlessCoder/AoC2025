@@ -34,25 +34,50 @@ fn input_iter(input: &str) -> impl Iterator<Item = Bank> {
     })
 }
 
+#[inline(always)]
+fn find_max_idx(data: &[u8]) -> Option<(usize, u8)> {
+    const WIDTH: usize = 32;
+    if data.is_empty() {
+        return None;
+    }
+    let mut max = 0;
+    let mut max_idx = 0;
+    let mut chunks = data.chunks_exact(WIDTH);
+    let remainder_offset = chunks.len() * WIDTH;
+    for (chunk_idx, chunk) in chunks.by_ref().enumerate() {
+        let offset = chunk_idx * WIDTH;
+        chunk.iter().enumerate().for_each(|(idx, value)| {
+            if *value > max {
+                max_idx = offset.wrapping_add(idx);
+                max = *value;
+            }
+        });
+    }
+    chunks
+        .remainder()
+        .iter()
+        .enumerate()
+        .for_each(|(idx, value)| {
+            if *value > max {
+                max_idx = remainder_offset.wrapping_add(idx);
+                max = *value;
+            }
+        });
+    Some((max_idx, max))
+}
+
 pub fn part_one(input: &str) -> Option<u64> {
     let res = input_iter(input)
         .map(|bank| {
-            let (max_idx, &max_val) = bank.iter().enumerate().max_by_key(|&(_idx, v)| v).unwrap();
+            #[cfg(feature = "unsafe_optimizations")]
+            let (max_idx, max_val) = unsafe { find_max_idx(&bank).unwrap_unchecked() };
+            #[cfg(not(feature = "unsafe_optimizations"))]
+            let (max_idx, max_val) = find_max_idx(&bank).unwrap();
             let mut max = 0;
-            if let Some((_, max_to_the_left)) = bank
-                .iter()
-                .enumerate()
-                .take(max_idx)
-                .max_by_key(|&(_idx, v)| v)
-            {
+            if let Some((_, max_to_the_left)) = find_max_idx(&bank[..max_idx]) {
                 max = max_to_the_left * 10 + max_val;
             }
-            if let Some((_, max_to_the_right)) = bank
-                .iter()
-                .enumerate()
-                .skip(max_idx + 1)
-                .max_by_key(|&(_idx, v)| v)
-            {
+            if let Some((_, max_to_the_right)) = find_max_idx(&bank[max_idx + 1..]) {
                 max = (max_val * 10 + max_to_the_right).max(max);
             }
             max as u64
@@ -68,15 +93,9 @@ pub fn part_two(input: &str) -> Option<u64> {
             let mut start = 0;
             let mut digits_found = 0;
             let mut find_digit = || {
-                let (best_digit_pos, value) = bank
-                    .into_iter()
-                    .enumerate()
-                    .take(bank.len() + digits_found - (WIDTH - 1))
-                    .skip(start)
-                    .rev()
-                    .max_by_key(|&(_idx, v)| v)
-                    .unwrap();
-                start = best_digit_pos + 1;
+                let (best_digit_offset, value) =
+                    find_max_idx(&bank[start..bank.len() + digits_found - (WIDTH - 1)]).unwrap();
+                start += best_digit_offset + 1;
                 digits_found += 1;
                 value
             };
