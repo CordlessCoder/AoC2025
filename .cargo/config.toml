@@ -6,7 +6,8 @@ read = "run --quiet --release -- read"
 
 solve = "run --release -F unsafe_optimizations -- solve"
 solve_safe = "run --quiet --release -- solve"
-all_sale = "run --quiet --release -- all"
+all = "run --quiet --release -F unsafe_optimizations -- all"
+all_safe = "run --quiet --release -- all"
 time = "run --quiet --release -F unsafe_optimizations -- time"
 time_safe = "run --quiet --release -- time"
 
