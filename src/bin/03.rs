@@ -2,6 +2,29 @@ advent_of_code::solution!(3);
 
 type Bank = [u8; 100];
 
+#[cfg(feature = "unsafe_optimizations")]
+fn input_iter(input: &str) -> impl Iterator<Item = Bank> {
+    let mut last = 0;
+    let line_separated = memchr::memchr_iter(b'\n', input.as_bytes()).map(move |end| {
+        let segment = unsafe { input.get_unchecked(last..end) };
+        last = end + 1;
+        segment
+    });
+    line_separated.map(|line| {
+        let bytes = line.trim().as_bytes();
+        // SAFETY: This is guaranteed by the input format
+        let as_bank: &Bank = unsafe { bytes.try_into().unwrap_unchecked() };
+        let mut bank = *as_bank;
+        let mut chunks = bank.chunks_exact_mut(32);
+        chunks.by_ref().for_each(|c| {
+            c.iter_mut().for_each(|c| *c -= b'0');
+        });
+        chunks.into_remainder().iter_mut().for_each(|c| *c -= b'0');
+        bank
+    })
+}
+
+#[cfg(not(feature = "unsafe_optimizations"))]
 fn input_iter(input: &str) -> impl Iterator<Item = Bank> {
     input.lines().map(|line| {
         let bytes = line.trim().as_bytes();
