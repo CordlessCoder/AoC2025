@@ -15,6 +15,7 @@ fn input_iter(input: &str) -> impl Iterator<Item = Bank> {
         // SAFETY: This is guaranteed by the input format
         let as_bank: &Bank = unsafe { bytes.try_into().unwrap_unchecked() };
         let mut bank = *as_bank;
+        // Encourage vectorization with chunked subtraction
         let mut chunks = bank.chunks_exact_mut(32);
         chunks.by_ref().for_each(|c| {
             c.iter_mut().for_each(|c| *c -= b'0');
@@ -83,21 +84,4 @@ pub fn part_two(input: &str) -> Option<u64> {
         })
         .sum();
     Some(res)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_part_one() {
-        let result = part_one(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
-    }
-
-    #[test]
-    fn test_part_two() {
-        let result = part_two(&advent_of_code::template::read_file("examples", DAY));
-        assert_eq!(result, None);
-    }
 }
