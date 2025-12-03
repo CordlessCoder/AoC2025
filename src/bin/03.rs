@@ -93,8 +93,15 @@ pub fn part_two(input: &str) -> Option<u64> {
             let mut start = 0;
             let mut digits_found = 0;
             let mut find_digit = || {
+                debug_assert!(digits_found > WIDTH);
+                #[cfg(not(feature = "unsafe_optimizations"))]
                 let (best_digit_offset, value) =
                     find_max_idx(&bank[start..bank.len() + digits_found - (WIDTH - 1)]).unwrap();
+                #[cfg(feature = "unsafe_optimizations")]
+                let (best_digit_offset, value) = unsafe {
+                    find_max_idx(bank.get_unchecked(start..bank.len() + digits_found - (WIDTH - 1)))
+                        .unwrap_unchecked()
+                };
                 start += best_digit_offset + 1;
                 digits_found += 1;
                 value
