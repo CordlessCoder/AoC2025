@@ -13,11 +13,13 @@ fn input_iter(input: &str) -> impl Iterator<Item = (u64, u64)> {
 #[cfg(feature = "unsafe_optimizations")]
 fn input_iter(input: &str) -> impl Iterator<Item = (u64, u64)> {
     let mut last = 0;
-    let comma_separated = memchr::memchr_iter(b',', input.as_bytes()).map(move |end| {
-        let segment = unsafe { input.get_unchecked(last..end) };
-        last = end + 1;
-        segment
-    });
+    let comma_separated = memchr::memchr_iter(b',', input.as_bytes())
+        .chain(core::iter::once(input.len() - 1))
+        .map(move |end| {
+            let segment = unsafe { input.get_unchecked(last..end) };
+            last = end + 1;
+            segment
+        });
     comma_separated.map(|range| {
         // SAFETY: This is guaranteed by the input format
         let (start, end) = unsafe { range.split_once('-').unwrap_unchecked() };
@@ -41,7 +43,7 @@ pub fn part_one(input: &str) -> Option<u64> {
                 let max_sequence = (end / factor).min(10u64.pow(exponent / 2 + 1) - 1);
                 (min_sequence..=max_sequence)
                     .map(|seq| seq * factor)
-                    .filter(|candidate| (start..=end).contains(candidate))
+                    .inspect(move |candidate| debug_assert!((start..=end).contains(candidate)))
                     .sum()
             })
         })
@@ -71,7 +73,7 @@ pub fn part_two(input: &str) -> Option<u64> {
                         (end / factor).min(10u64.pow((exponent + 1) / repetitions) - 1);
                     (min_sequence..=max_sequence)
                         .map(move |seq| seq * factor)
-                        .filter(move |candidate| (start..=end).contains(candidate))
+                        .inspect(move |candidate| debug_assert!((start..=end).contains(candidate)))
                 })
         })
     });

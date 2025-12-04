@@ -14,6 +14,10 @@ pub fn handle(day: Day, release: bool, dhat: bool, submit_part: Option<u8>) {
         ]);
     } else if release {
         cmd_args.push("--release".to_string());
+        if cfg!(feature = "unsafe_optimizations") {
+            cmd_args.push("-F".to_string());
+            cmd_args.push("unsafe_optimizations".to_string());
+        }
     }
 
     cmd_args.push("--".to_string());

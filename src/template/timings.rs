@@ -269,6 +269,7 @@ mod tests {
     }
 
     mod is_day_complete {
+        #[cfg(test)]
         use crate::{
             day,
             template::timings::{Timing, Timings},
@@ -285,7 +286,7 @@ mod tests {
                 }],
             };
 
-            assert_eq!(timings.is_day_complete(&day!(1)), true);
+            assert!(timings.is_day_complete(day!(1)));
         }
 
         #[test]
@@ -299,7 +300,7 @@ mod tests {
                 }],
             };
 
-            assert_eq!(timings.is_day_complete(&day!(1)), false);
+            assert!(!timings.is_day_complete(day!(1)));
         }
 
         #[test]
@@ -313,7 +314,7 @@ mod tests {
                 }],
             };
 
-            assert_eq!(timings.is_day_complete(&day!(1)), false);
+            assert!(!timings.is_day_complete(day!(1)));
         }
     }
 
