@@ -35,25 +35,18 @@ const CONNECTIONS: usize = 10;
 const CONNECTIONS: usize = 1000;
 
 pub fn part_one(input: &str) -> Option<u64> {
-    let mut positions_and_group_indices: Vec<(Rc<Cell<usize>>, Pos)> = input_iter(input)
-        .enumerate()
-        .map(|(group, pos)| (Rc::new(Cell::new(group)), pos))
-        .collect();
-    let mut connections: Vec<(usize, usize)> = (1..positions_and_group_indices.len())
+    let positions: Vec<Pos> = input_iter(input).collect();
+    let mut groups: Vec<Rc<Cell<usize>>> =
+        (0..positions.len()).map(Cell::new).map(Rc::new).collect();
+    let mut connections: Vec<(usize, usize)> = (1..positions.len())
         .flat_map(|max| (0..max).map(move |min| (min, max)))
         .collect();
-    let sort_key = |&(a, b): &(usize, usize)| {
-        positions_and_group_indices[a]
-            .1
-            .distance_squared(positions_and_group_indices[b].1)
-    };
+    let sort_key = |&(a, b): &(usize, usize)| positions[a].distance_squared(positions[b]);
     connections.select_nth_unstable_by_key(CONNECTIONS, sort_key);
     connections.truncate(CONNECTIONS);
     connections.sort_unstable_by_key(sort_key);
-    for (first_idx, second_idx) in connections.into_iter() {
-        let [(first, _), (second, _)] = positions_and_group_indices
-            .get_disjoint_mut([first_idx, second_idx])
-            .unwrap();
+    for (first_idx, second_idx) in connections.into_iter().take(CONNECTIONS) {
+        let [first, second] = groups.get_disjoint_mut([first_idx, second_idx]).unwrap();
         let (min, max) = if first.get() < second.get() {
             (first, second)
         } else {
@@ -63,8 +56,8 @@ pub fn part_one(input: &str) -> Option<u64> {
         let min_val = min.get();
         max.set(min_val);
         *max = min.clone();
-        if let Ok([(first, _), (second, _), (old_group, _)]) =
-            positions_and_group_indices.get_disjoint_mut([first_idx, second_idx, max_val])
+        if let Ok([first, second, old_group]) =
+            groups.get_disjoint_mut([first_idx, second_idx, max_val])
         {
             let min = (old_group).min(second).min(first).clone();
             let min_val = min.get();
@@ -77,14 +70,12 @@ pub fn part_one(input: &str) -> Option<u64> {
         };
     }
     let mut circuit_sizes: BTreeMap<usize, usize> = BTreeMap::new();
-    for ref_idx in 0..positions_and_group_indices.len() {
-        let ref_pos_and_group = positions_and_group_indices[ref_idx].clone();
-        let broadcasted_pos = positions_and_group_indices[ref_pos_and_group.0.get()].clone();
-        positions_and_group_indices[ref_idx]
-            .0
-            .set(broadcasted_pos.0.get());
-        positions_and_group_indices[ref_idx].0 = broadcasted_pos.0.clone();
-        *circuit_sizes.entry(broadcasted_pos.0.get()).or_default() += 1;
+    for ref_idx in 0..groups.len() {
+        let ref_pos_and_group = groups[ref_idx].clone();
+        let broadcasted_pos = groups[ref_pos_and_group.get()].clone();
+        groups[ref_idx].set(broadcasted_pos.get());
+        groups[ref_idx] = broadcasted_pos.clone();
+        *circuit_sizes.entry(broadcasted_pos.get()).or_default() += 1;
     }
     let mut largest_sizes = std::collections::BinaryHeap::from_iter(circuit_sizes.into_values());
     let mut product = 1;
@@ -107,18 +98,26 @@ impl UnionFind {
             sets: size,
         }
     }
-    pub fn find(&self, element: usize) -> usize {
-        if self.parents[element] == element {
-            return element;
+    #[expect(unused)]
+    pub fn siblings(&mut self, a: usize, b: usize) -> bool {
+        self.find(a) == self.find(b)
+    }
+    pub fn find(&mut self, element: usize) -> usize {
+        let root = self.parents[element];
+        if root != element {
+            let rep = self.find(root);
+            self.parents[element] = rep;
+            return rep;
         }
-        self.find(self.parents[element])
+        root
     }
     pub fn join(&mut self, a: usize, b: usize) {
         let a_rep = self.find(a);
         let b_rep = self.find(b);
-        if a_rep != b_rep {
-            self.sets -= 1;
+        if a_rep == b_rep {
+            return;
         }
+        self.sets -= 1;
         self.parents[a_rep] = b_rep;
     }
     pub fn sets(&self) -> usize {
@@ -127,17 +126,17 @@ impl UnionFind {
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    let positions_and_group_indices: Vec<Pos> = input_iter(input).collect();
+    let positions: Vec<Pos> = input_iter(input).collect();
     let sort_key = |&(a, b): &(usize, usize)| {
-        u64::MAX - positions_and_group_indices[a].distance_squared(positions_and_group_indices[b])
+        u64::MAX - positions[a].distance_squared(positions[b])
     };
     let mut connections = BinaryHeap::new_by_key(sort_key);
     for connection in
-        (1..positions_and_group_indices.len()).flat_map(|max| (0..max).map(move |min| (min, max)))
+        (1..positions.len()).flat_map(|max| (0..max).map(move |min| (min, max)))
     {
         connections.push(connection);
     }
-    let mut sets = UnionFind::new(positions_and_group_indices.len());
+    let mut sets = UnionFind::new(positions.len());
     let mut last_connection = (0, 0);
     for (first_idx, second_idx) in connections.into_iter_sorted() {
         sets.join(first_idx, second_idx);
@@ -146,8 +145,8 @@ pub fn part_two(input: &str) -> Option<u64> {
             break;
         }
     }
-    let a = positions_and_group_indices[last_connection.0];
-    let b = positions_and_group_indices[last_connection.1];
+    let a = positions[last_connection.0];
+    let b = positions[last_connection.1];
     Some(a.x * b.x)
 }
 
