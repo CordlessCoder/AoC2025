@@ -118,7 +118,7 @@ pub fn part_one(input: &str) -> Option<usize> {
 
 pub fn part_two(input: &str) -> Option<usize> {
     let data = parse_input(input);
-    let mut count_cache: HashMap<Device, PathCounts> = HashMap::from_iter([(
+    let mut count_cache = HashMap::from_iter([(
         OUT,
         PathCounts {
             any: 1,

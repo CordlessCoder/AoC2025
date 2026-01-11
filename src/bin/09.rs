@@ -1,7 +1,6 @@
-use binary_heap_plus::BinaryHeap;
-use itertools::{Itertools, MinMaxResult};
+use bitvec::prelude::*;
+use itertools::Itertools;
 use quadtree_rs::{
-    Quadtree,
     area::{Area, AreaBuilder},
     point::Point,
 };
@@ -51,19 +50,6 @@ fn input_iter(input: &str) -> impl Iterator<Item = Pos> {
 }
 
 pub fn part_one(input: &str) -> Option<u64> {
-    // let (mut sum, mut diff): (Vec<_>, Vec<_>) = input_iter(input)
-    //     .map(|pos| ((pos.x + pos.y, pos), (pos.x.abs_diff(pos.y), pos)))
-    //     .unzip();
-    // sum.sort_unstable();
-    // diff.sort_unstable();
-    // let dist_sum = sum.last().unwrap().0 - sum.first().unwrap().0;
-    // let dist_diff = diff.last().unwrap().0 - diff.first().unwrap().0;
-    // let area = if dist_sum > dist_diff {
-    //     sum.last().unwrap().1.area_to(sum.first().unwrap().1)
-    // } else {
-    //     diff.last().unwrap().1.area_to(diff.first().unwrap().1)
-    // };
-    // Some(area)
     let positions: Vec<Pos> = input_iter(input).collect();
     let area = positions
         .iter()
@@ -77,22 +63,17 @@ pub fn part_one(input: &str) -> Option<u64> {
 
 pub fn part_two(input: &str) -> Option<u64> {
     let positions: Vec<Pos> = input_iter(input).collect();
-    // positions.sort_unstable();
-    // binary_heap_plus::BinaryHeap::new_by_key(|)
-    let max_x = positions.iter().map(|pos| pos.x).max().unwrap();
-    let max_y = positions.iter().map(|pos| pos.y).max().unwrap();
-    let mut quadtree: Quadtree<u32, ()> = Quadtree::new(max_y.max(max_x).ilog2() as usize + 1);
-    for (from, to) in positions.iter().circular_tuple_windows() {
-        quadtree.insert(from.into_area(*to), ());
-    }
-    // let mut pairs: Vec<(Pos, Pos)> = positions.iter().copied().tuple_combinations().collect();
-    let mut heap = BinaryHeap::new_by_key(|(a, b): &(Pos, Pos)| a.area_to(*b));
-    heap.extend(positions.iter().copied().tuple_combinations::<(Pos, Pos)>());
-    for (a, b) in heap.into_iter_sorted() {
-        let area = a.into_area(b);
-        dbg!(area, quadtree.query(area).collect_vec());
-    }
-    // Some(area)
+    // // positions.sort_unstable();
+    let max_x = positions.iter().map(|pos| pos.x).max().unwrap() as usize;
+    let max_y = positions.iter().map(|pos| pos.y).max().unwrap() as usize;
+    let mut buf = bitvec!(0; max_x * max_y);
+    // let mut heap = BinaryHeap::new_by_key(|(a, b): &(Pos, Pos)| a.area_to(*b));
+    // heap.extend(positions.iter().copied().tuple_combinations::<(Pos, Pos)>());
+    // for (a, b) in heap.into_iter_sorted() {
+    //     let area = a.into_area(b);
+    //     dbg!(area, quadtree.query(area).collect_vec());
+    // }
+    // // Some(area)
     todo!()
 }
 
